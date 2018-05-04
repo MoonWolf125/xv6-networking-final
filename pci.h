@@ -1,3 +1,5 @@
+#ifndef PCI_H__
+#define PCI_H__
 /*
  * Code to search the PCI bus and find devices
  */
@@ -13,13 +15,13 @@
 
 struct pcifunc;
 
-struct pcibus {
+typedef struct {
     struct pcifunc * pntbrdg;
     uint32_t busnum;
-};
+} pcibus;
 
 typedef struct {
-    struct pcibus * bus;
+    pcibus * bus;
     
     uint32_t dev;
     uint32_t func;
@@ -37,3 +39,4 @@ typedef struct {
 } pcidrvr;
 
 int pciinit(void);
+#endif

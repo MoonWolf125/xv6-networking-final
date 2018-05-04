@@ -82,7 +82,7 @@ void pcienabledev(pcifunc * f) {
 
 static int attache1000(pcifunc * pcifunc) {
     pcienabledev(pcifunc);
-    struct nic d;
+    nic d;
     inite1000(pcifunc, &d.drvr, d.macaddr);
     d.sendpacket = sende1000;
     d.recvpacket = recve1000;
@@ -108,7 +108,7 @@ static void attachpcinic(pcifunc * pcifunc) {
     }
 }
 
-static int pcienumbus(struct pcibus * bus) {
+static int pcienumbus(pcibus * bus) {
     int totdev = 0;
     pcifunc func;
     memset(&func, 0, sizeof(func));
@@ -141,7 +141,7 @@ static int pcienumbus(struct pcibus * bus) {
 }
 
 int pciinit(void) {
-    static struct pcibus rootbus;
+    static pcibus rootbus;
     memset(&rootbus, 0, sizeof(rootbus));
     return pcienumbus(&rootbus);
 }

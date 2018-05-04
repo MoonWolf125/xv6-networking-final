@@ -1,3 +1,5 @@
+#ifndef NIC_H__
+#define NIC_H__
 /*
  * Initialize device drivers for different Network Interface Controllers
  */
@@ -5,14 +7,15 @@
 #include "arpfrm.h"
 
 // Network Interface Device Driver Container
-struct nic {
+typedef struct {
     void * drvr;
     uint8_t macaddr[6];
     void (* sendpacket)(void * drvr, uint8_t * pkt, uint16_t len);
     void (* recvpacket)(void * drvr, uint8_t * pkt, uint16_t len);
-};
+} nic;
 
-struct nic nics[1];
+nic nics[1];
 
-void regnicdevice(struct nic d);
-int getnicdevice(char * intrfc, struct nic ** d);
+void regnicdevice(nic d);
+int getnicdevice(char * intrfc, nic ** d);
+#endif

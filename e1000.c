@@ -274,7 +274,7 @@ static void delay(unsigned int u) {
 void sende1000(void * drv, uint8_t * pkt, uint16_t len) {
     e1000 * _e1000 = (e1000 *)kalloc();
     _e1000 = drv;
-    cprintf("E1000 driver: Sending packet of length: 0x%x %x starting at physical address: 0x%x\n", len, sizeof(struct eth_head), V2P(_e1000->tbuf[_e1000->tbdtail]));
+    cprintf("E1000 driver: Sending packet of length: 0x%x %x starting at physical address: 0x%x\n", len, sizeof(eth_head), V2P(_e1000->tbuf[_e1000->tbdtail]));
     memset(_e1000->tbd[_e1000->tbdtail], 0, sizeof(e1000_TBD));
     memmove((_e1000->tbuf[_e1000->tbdtail]), pkt, len);
     _e1000->tbd[_e1000->tbdtail]->addr = (uint64_t)(uint32_t)V2P(_e1000->tbuf[_e1000->tbdtail]);
@@ -291,7 +291,7 @@ void sende1000(void * drv, uint8_t * pkt, uint16_t len) {
     cprintf("after while loop\n");
 }
 
-int e1000init(pcifunc * pcif, void ** drv, uint8_t * macaddr) {
+int inite1000(pcifunc * pcif, void ** drv, uint8_t * macaddr) {
     e1000 * _e1000 = (e1000 *)kalloc();
     int i;
     for (i = 0; i < 6; i = i + 1) {

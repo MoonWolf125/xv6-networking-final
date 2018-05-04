@@ -1,3 +1,5 @@
+#ifndef E1000_H__
+#define E1000_H__
 /*
  * Driver for the E1000 Network Interface Controller
  * Controller information retrieved from the following sources:
@@ -14,3 +16,4 @@ int inite1000(pcifunc * pcif, void ** driver, uint8_t * mac);
 
 void sende1000(void * e1000, uint8_t * pkt, uint16_t len);
 void recve1000(void * e1000, uint8_t * pkt, uint16_t len);
+#endif

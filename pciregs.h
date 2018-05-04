@@ -1,3 +1,5 @@
+#ifndef PCIREGS_H__
+#define PCIREGS_H__
 /*
  * Access Macros and Register Definitions for PCI
  * 	Identification Register
@@ -157,5 +159,5 @@
     (PCI_MAPREG_MEM_ADDR(mr) & -PCI_MAPREG_MEM_ADDR(mr))
 #define PCI_MAPREG_IO_ADDR(mr) \
     ((mr) & PCI_MAPREG_IO_ADDR_MASK)
-#define PCI_MAPREG_IO_SIZE(mr) \
-    (PCI_MAPREG_IO_ADDR(mr) & -PCI_MAPREG_IO_ADDR(mr))
+#define PCI_MAPREG_IO_SIZE(mr)(PCI_MAPREG_IO_ADDR(mr) & -PCI_MAPREG_IO_ADDR(mr))
+#endif
