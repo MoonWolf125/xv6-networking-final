@@ -170,6 +170,10 @@ void            uartinit(void);
 void            uartintr(void);
 void            uartputc(int);
 
+// ulib.c
+int             strcmp(const char *p, const char *q);
+int             atoi(const char *s);
+
 // vm.c
 void            seginit(void);
 void            kvmalloc(void);

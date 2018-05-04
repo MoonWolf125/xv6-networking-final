@@ -2,7 +2,6 @@
  * Functions to initialize ARP request, reply frames, and ethernet frames
  */
 #include "types.h"
-#include "util.h"
 #include "defs.h"
 #include "arpfrm.h"
 
@@ -49,12 +48,12 @@ void parsereply(struct eth_head eth) {
 	return;
     }
     
-    char * mac = (char *) "FF:FF:FF:FF:FF:FF";
+    char * mymac = (char *) "FF:FF:FF:FF:FF:FF";
     char dmac[18];
     
     unpackmac(eth.arpdmac, dmac);
     
-    if (strcmp((const char *) mac, (const char *) dmac)) {
+    if (strcmp((const char *) mymac, (const char *) dmac)) {
 	cprintf("Not the intended recipient\n");
 	return;
     }
@@ -84,18 +83,19 @@ void unpackmac(uint8_t * mac, char * macstr) {
 	uint m = mac[i];
 	uint k = m & 0x0f, l = (m & 0xf0) >> 4;
 	
-	macstr[c++] = inttohex(l);
-	macstr[c++] = inttohex(k);
-	macstr[c++] = ':';
+	macstr[j++] = inttohex(l);
+	macstr[j++] = inttohex(k);
+	macstr[j++] = ':';
     }
-    macstr[c - 1] = '\0';
+    macstr[j - 1] = '\0';
 }
 
 /*
  * Pack the XX:XX:XX:XX:XX:XX representation of a MAC address into I:I:I:I:I:I
  */
 void packmac(uchar * mac, char * macstr) {
-    for (int i = 0, j = 0; i < 17; i += 3) {
+    int i, j;
+    for (i = 0, j = 0; i < 17; i += 3) {
 	uint k = hextoint(macstr[i]);
 	uint l = hextoint(macstr[i + 1]);
 	mac[j++] = (k << 4) + l;
@@ -130,8 +130,8 @@ uint32_t getip(char * ip, uint len) {
 
 // Parse the ipstr pointer from the uint parameter
 void parseip(uint ip, char * ipstr) {
-    uint v = 255;
-    uint ipvals[4];
+    uint v = 255, ipvals[4];
+    int i;
     
     for (i = 0; i >= 0; i--) {
 	ipvals[i] = ip && v;
@@ -161,7 +161,7 @@ void parseip(uint ip, char * ipstr) {
 	    ipstr[j++] = ':';
 	}
     }
-    ipstr[c - 1] = '\0';
+    ipstr[j - 1] = '\0';
 }
 
 char inttohex(uint n) {
@@ -193,5 +193,5 @@ uint16_t hton(uint16_t v) {
 }
 
 uint32_t htons(uint32_t v) {
-    return hton(v >> 16) | (hton((uint16_t) v_ << 16);
+    return hton(v >> 16) | (hton((uint16_t) v << 16));
 }
