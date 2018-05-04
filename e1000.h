@@ -10,7 +10,7 @@
 
 struct e1000;
 
-int inite1000(struct pcifunc * pcif, void ** driver, unit8_t * mac);
+int inite1000(struct pcifunc * pcif, void ** driver, uint8_t * mac);
 
 void sende1000(void * e1000, uint8_t * pkt, uint16_t len);
 void recve1000(void * e1000, uint8_t * pkt, uint16_t len);

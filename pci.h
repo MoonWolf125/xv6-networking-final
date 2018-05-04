@@ -18,7 +18,7 @@ struct pcibus {
     uint32_t busnum;
 };
 
-struct pcifunc {
+typedef struct {
     struct pcibus * bus;
     
     uint32_t dev;
@@ -29,11 +29,11 @@ struct pcifunc {
     uint32_t regsize[6];
     uint8_t irqline;
     uint8_t irqpin;
-};
+} pcifunc;
 
-struct pcidrvr {
+typedef struct {
     uint32_t key0, key1;
-    int (* atchfunc)(struct pcifunc * pcif);
-};
+    int (* atchfunc)(pcifunc * pcif);
+} pcidrvr;
 
 int pciinit(void);

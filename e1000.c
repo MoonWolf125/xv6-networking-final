@@ -9,8 +9,6 @@
 #include "e1000.h"
 #include "defs.h"
 #include "x86.h"
-#include "arpfrm.h"
-#include "nic.h"
 #include "memlayout.h"
 
 /*
@@ -43,8 +41,8 @@
 #define E1000_CONTROL_ASDE_MASK		0x00000020
 #define E1000_CONTROL_SLUP_MASK		0x00000040
 
-#define E1000_CNTRL_RST_BIT(cntrl) \
-        (cntrl & E1000_CNTRL_RST_MASK)
+#define E1000_CONTROL_RST_BIT(cntrl) \
+        (cntrl & E1000_CONTROL_RESET_MASK)
 
 /*
  * Ethernet Device Registers
@@ -124,6 +122,32 @@
         ((value << E1000_TIPG_IPGR2_BIT_SHIFT) & E1000_TIPG_IPGR2_BIT_MASK)
 
 /*
+ * Ethernet Device Interrupt Mast Set
+ * 	Transmit Queue Empty
+ * 	Receive Sequence Error
+ * 	Receiver Overrun
+ * 	Receiver Timer Interrupt
+ */
+#define E1000_IMS		0x000d0
+#define E1000_IMS_TXQE		0x00000002
+#define E1000_IMS_RXSEQ		0x00000008
+#define E1000_IMS_RXO		0x00000040
+#define E1000_IMS_RXT0		0x00000080
+
+/*
+ * Ethernet Device Receiver Controller
+ * 	Enable*
+ * 	Broadcast Accept Mode
+ * 	Receive Buffer Size
+ * 	Strip Ethernet CRC
+ */
+#define E1000_RCTL		0x00100
+#define E1000_RCTL_EN		0x00000002
+#define E1000_RCTL_BAM		0x00008000
+#define E1000_RCTL_BSIZE	0x00000000
+#define E1000_RCTL_SECRC	0x04000000
+
+/*
  * Ethernet Device Transmit Descriptor Command
  * 	End Of Packet
  * 	Insert Frame Check Sequence
@@ -180,8 +204,7 @@
  * Transmit Buffer Descriptor
  * 	Queue must be aligned on 16B boundary
  */
-__attribute__ ((packed))
-struct e1000_TBD {
+typedef struct {
     uint64_t addr;	// Buffer Address
     uint16_t len;	// Length
     uint8_t cso;	// Checksum Offset
@@ -189,14 +212,13 @@ struct e1000_TBD {
     uint8_t sts;	// Status
     uint8_t css;	// Checksum Start
     uint16_t spc;	// Special
-};
+} e1000_TBD;
 
 /*
  * Receive Buffer Descriptor
  * 	Queue must be aligned on 16B boundary
  */
-__attribute__ ((packed))
-struct e1000_RBD {
+typedef struct {
     uint32_t addr0;	// First Buffer Address
     uint32_t addr1;	// Second Buffer Address
     uint16_t len;	// Length
@@ -204,23 +226,23 @@ struct e1000_RBD {
     uint8_t sts;	// Status
     uint8_t err;	// Errors
     uint16_t spc;	// Special
-};
+} e1000_RBD;
 
-struct packbuf {
+typedef struct {
     uint8_t buf[2046];
-};
+} packbuf;
 
 /*
  * E1000 Structure
  */
-struct e1000 {
+typedef struct {
     // Transmit and Receive Buffer Descriptors
-    struct e1000_TBD * tbd[E1000_TBD_SLOTS];
-    struct e1000_RBD * rbd[E1000_RBD_SLOTS];
+    e1000_TBD * tbd[E1000_TBD_SLOTS];
+    e1000_RBD * rbd[E1000_RBD_SLOTS];
     
     // Packet buffer space for Transmit and Receieve
-    struct packbuf * tbuf[E1000_TBD_SLOTS];
-    struct packbuf * rbuf[E1000_RBD_SLOTS];
+    packbuf * tbuf[E1000_TBD_SLOTS];
+    packbuf * rbuf[E1000_RBD_SLOTS];
     
     int tbdhead, tbdtail, rbdhead, rbdtail;
     char tbdidle, rbdidle;
@@ -229,13 +251,13 @@ struct e1000 {
     uint8_t irqline;	// Interrupt Request Line
     uint8_t irqpin;	// Interrupt Request Pin
     uint8_t mac[6];
-};
+} e1000;
 
-static void e1000regwrite(uint32_t regaddr, uint32_t val, struct e1000 * e1000) {
-    * (uint32_t *)(e1000->membase + regaddr) = value;
+static void e1000regwrite(uint32_t regaddr, uint32_t val, e1000 * e1000) {
+    * (uint32_t *)(e1000->membase + regaddr) = val;
 }
 
-static uint32_t e1000regread(uint32_t regaddr, struct e1000 * e1000) {
+static uint32_t e1000regread(uint32_t regaddr, e1000 * e1000) {
     uint32_t val = * (uint32_t *)(e1000->membase + regaddr);
     cprintf("Read val 0x%x from E1000 IO port 0x%x\n", val, regaddr);
     return val;
@@ -248,9 +270,9 @@ static void delay(unsigned int u) {
 }
 
 void sende1000(void * drv, uint8_t * pkt, uint16_t len) {
-    struct e1000 * e1000 = (struct e1000 *)drv;
-    cprintf("E1000 driver: Sending packet of length: 0x%x %x starting at physical address: 0x%x\n", len, sizeof(struct ethhead), V2P(e1000->tbuf[e1000->tbdtail]));
-    memset(e1000->tbd(e1000->tbdtail], 0, sizeof(struct e1000tbd));
+    e1000 * e1000 = (e1000 *)drv;
+    cprintf("E1000 driver: Sending packet of length: 0x%x %x starting at physical address: 0x%x\n", len, sizeof(struct eth_head), V2P(e1000->tbuf[e1000->tbdtail]));
+    memset(e1000->tbd[e1000->tbdtail], 0, sizeof(e1000_TBD));
     memmove((e1000->tbuf[e1000->tbdtail]), pkt, len);
     e1000->tbd[e1000->tbdtail]->addr = (uint64_t)(uint32_t)V2P(e1000->tbuf[e1000->tbdtail]);
     e1000->tbd[e1000->tbdtail]->len = len;
@@ -258,7 +280,7 @@ void sende1000(void * drv, uint8_t * pkt, uint16_t len) {
     e1000->tbd[e1000->tbdtail]->cso = 0;
     int oldtail = e1000->tbdtail;
     e1000->tbdtail = (e1000->tbdtail + 1) % E1000_TBD_SLOTS;
-    e1000redwrite(E1000_TDT, e1000->tbdtail, e1000);
+    e1000regwrite(E1000_TDT, e1000->tbdtail, e1000);
     
     while (!E1000_TDESC_STATUS_DONE(e1000->tbd[oldtail]->sts)) {
 	delay(2);
@@ -266,119 +288,119 @@ void sende1000(void * drv, uint8_t * pkt, uint16_t len) {
     cprintf("after while loop\n");
 }
 
-int e1000init(struct pcifund * pcif, void ** drv, uint8_t * macaddr) {
-    struct e1000 * e1000 = (struct e1000 *)kalloc();
+int e1000init(pcifunc * pcif, void ** drv, uint8_t * macaddr) {
+    e1000 * _e1000 = (e1000 *)kalloc();
     int i;
-    for (i = 0, i < 6; i = i + 1) {
+    for (i = 0; i < 6; i = i + 1) {
 	if (pcif->regbase[i] <= 0xffff) {
-	    e1000->iobase = pcif->regbase[i];
+	    _e1000->iobase = pcif->regbase[i];
 	    if (pcif->regsize[i] != 64) {
 		panic("I/O space BAR size != 64");
 	    }
 	    break;
 	}
 	else if (pcif->regbase[i] > 0) {
-	    e1000->membase = pcif->regbase[i];
+	    _e1000->membase = pcif->regbase[i];
 	    if (pcif->regsize[i] != (1<<17))
 		panic("Mem space BAR size != 128KB");
 	}
     }
-    if (!e1000->iobase) {
+    if (!_e1000->iobase) {
 	panic("Failed to find a valid I/O port base for the E1000");
-	if (!e1000->membase)
+	if (!_e1000->membase)
 	    panic("Fail to find a valid Mem I/O base for E1000");
     }
-    e1000->irqline = pcif->irqline;
-    e1000->irqpin = pcif->irqpin;
-    cprintf("E1000 init: Interrupt pin=%d and line:%d\n", e1000->irqpine, e1000->irqline);
-    e1000->tbdhead = e1000->tbdtail = 0;
-    e1000->rbdhead = e1000->rbdtail = 0;
+    _e1000->irqline = pcif->irqline;
+    _e1000->irqpin = pcif->irqpin;
+    cprintf("E1000 init: Interrupt pin=%d and line:%d\n", _e1000->irqpin, _e1000->irqline);
+    _e1000->tbdhead = _e1000->tbdtail = 0;
+    _e1000->rbdhead = _e1000->rbdtail = 0;
     
     // Reset the device
-    e1000regwrite(E1000_CNTRL_REG,
-		  e1000regread(E1000_CNTRL_REG, e1000) | E1000_CNTRL_RST_MASK, e1000);
+    e1000regwrite(E1000_CONTROL_REG,
+		  e1000regread(E1000_CONTROL_REG, _e1000) | E1000_CONTROL_RESET_MASK, _e1000);
     do {
 	delay(3);
-    } while (E1000_CNTRL_RST_BIT(e1000regread(E1000_CNTRL_REG, e1000)));
+    } while (E1000_CONTROL_RST_BIT(e1000regread(E1000_CONTROL_REG, _e1000)));
     
-    uint32_t cntrlreg = e1000regread(E1000_CNTRL_REG, e1000);
-    e1000regwrite(E1000_CNTRL_REG, cntrlreg | E1000_CNTRL_ASDE_MASK | E1000_CNTRL_SLU_MASK, e1000);
+    uint32_t cntrlreg = e1000regread(E1000_CONTROL_REG, _e1000);
+    e1000regwrite(E1000_CONTROL_REG, cntrlreg | E1000_CONTROL_ASDE_MASK | E1000_CONTROL_SLUP_MASK, _e1000);
     
-    uint32_t macaddrl = e1000regread(E1000_RCV_RAL0, e1000);
-    uint32_t macaddrh = e1000regread(E1000_RCV_RAH0, e1000);
-    * (uint32_t *)e1000->macaddr = macaddrl;
-    * (uint16_t *)(&e1000->macaddr[4]) = (uint16_t)macaddrh;
+    uint32_t macaddrl = e1000regread(E1000_RECV_RAL0, _e1000);
+    uint32_t macaddrh = e1000regread(E1000_RECV_RAH0, _e1000);
+    * (uint32_t *)_e1000->mac = macaddrl;
+    * (uint16_t *)(&_e1000->mac[4]) = (uint16_t)macaddrh;
     * (uint32_t *)macaddr = macaddrl;
     * (uint32_t *)(&macaddr[4]) = (uint16_t)macaddrh;
     char macstr[18];
-    unpackmac(e1000->macaddr, macstr);
+    unpackmac(_e1000->mac, macstr);
     macstr[17] = 0;
     
     cprintf("\nMAC Address of the E1000 device:%s\n", macstr);
-    struct e1000tbd ** ttmp = (struct e1000tbd *)kalloc();
+    e1000_TBD * ttmp = (e1000_TBD *)kalloc();
     for (i = 0; i < E1000_TBD_SLOTS; i++, ttmp++)
-	e1000->tbd[i] = (struct e1000tbd *)ttmp;
+	_e1000->tbd[i] = (e1000_TBD *)ttmp;
     
-    if ((V2P(e1000->tbd[0]) & 0x0000000f) != 0) {
-	cprintf("Error: e1000 : Transmit Descriptor Ring not on paragraph boundary\n");
+    if ((V2P(_e1000->tbd[0]) & 0x0000000f) != 0) {
+	cprintf("Error: _e1000 : Transmit Descriptor Ring not on paragraph boundary\n");
 	kfree((char *)ttmp);
 	return -1;
     }
     
-    struct e1000rbd * rtmp = (struct e1000rbd *)kalloc();
+    e1000_RBD * rtmp = (e1000_RBD *)kalloc();
     for (i = 0; i < E1000_RBD_SLOTS; i++, rtmp++)
-	e100->rbd[i] = (struct e100rbd *)rtmp;
+	_e1000->rbd[i] = (e1000_RBD *)rtmp;
     
-    if ((V2P(e1000->rbd[0]) & 0x0000000f) != 0) {
+    if ((V2P(_e1000->rbd[0]) & 0x0000000f) != 0) {
 	cprintf("ERROR: E1000 : Receive Descriptor Ring not on paragraph boundary\n");
 	kfree((char *)rtmp);
 	return -1;
     }
     
-    struct packetbuf * tmp;
+    packbuf * tmp;
     for (i = 0; i < E1000_RBD_SLOTS; i += 2) {
-	tmp = (struct packetbuf *)kalloc();
-	e1000->rbuf[i] = tmp++;
-	e1000->rbd[i]->addrl = V2P((uint32_t)e1000->rbuf[i]);
-	e1000->rbd[i]->addrh = 0;
-	e1000->rbuf[i + 1] = tmp;
-	e1000->rbd[i + 1]->addrl = V2P((uint32_t)e1000->rbuf[i + 1]);
-	e1000->rbd[i + 1]->addrh = 0;
+	tmp = (packbuf *)kalloc();
+	_e1000->rbuf[i] = tmp++;
+	_e1000->rbd[i]->addr0 = V2P((uint32_t)_e1000->rbuf[i]);
+	_e1000->rbd[i]->addr1 = 0;
+	_e1000->rbuf[i + 1] = tmp;
+	_e1000->rbd[i + 1]->addr0 = V2P((uint32_t)_e1000->rbuf[i + 1]);
+	_e1000->rbd[i + 1]->addr1 = 0;
     }
     
     for (i = 0; i < E1000_TBD_SLOTS; i += 2) {
-	tmp = (struct packetbuf *)kalloc();
-	e1000->tbuf[i] = tmp++;
-	// e1000->tbd[i]->addr = (uint32_t)e1000->tbuf[i];
-	// e1000->tbd[i]->addrh = 0;
-	e1000->tbuf[i + 1] = tmp;
-	// e1000->tbd[i + 1]->addrl = (uint32_t)e1000->tbuf[i + 1];
-	// e1000->tbd[i + 1]->addrh = 0;
+	tmp = (packbuf *)kalloc();
+	_e1000->tbuf[i] = tmp++;
+	// _e1000->tbd[i]->addr = (uint32_t)_e1000->tbuf[i];
+	// _e1000->tbd[i]->addrh = 0;
+	_e1000->tbuf[i + 1] = tmp;
+	// _e1000->tbd[i + 1]->addrl = (uint32_t)_e1000->tbuf[i + 1];
+	// _e1000->tbd[i + 1]->addrh = 0;
     }
     
     // Populate the Descriptor Ring Addresses in TDBAL and RDBAL, plus HEAD and TAIL pointers
-    e1000regwrite(E1000_TDBAL, V2P(e1000->tbd[0]), e1000);
-    e1000regwrite(E1000_TDBAH, 0x00000000, e1000);
-    e1000regwrite(E1000_TDLEN, (E1000_TDB_SLOTS * 16) << 7, e1000);
-    e1000regwrite(E1000_TDH, 0x00000000, e1000);
-    e1000regwrite(E1000_TCTL, E1000_TCTL_EN | E1000_TCTL_PSP | E1000_TCTL_CT_SET(0x0f) | E1000_TCTL_COLD_SET(0x200), e1000);
-    e100regwrite(E1000_TDT, 0, e1000);
-    e1000regwrite(E1000_TIPG, E1000_TIPG_IPGT_SET(10) | E1000_TIPG_IPGR1_SET(10) | E1000_TIPG_IPGR2_SET(10), e1000);
-    e1000regwrite(E1000_RDBAL, V2P(e1000->rbd[0]), e1000);
-    e1000regwrite(E1000_RDBAH, 0x00000000, e1000);
-    e1000regwrite(E1000_RDLEN, (E1000_RDB_SLOTS * 16) << 7, e1000);
-    e1000regwrite(E1000_RDH, 0x00000000, e1000);
-    e1000regwrite(E1000_RDT, 0x00000000, e1000);
-    e1000regwrite(E1000_IMS, E1000_IMS_RXSEQ | E1000_IMS_RXO | E1000_IMS_RXT0 | E1000_IMS_TXQE, e1000);
-    e1000regwrite(E1000_RCTL, E1000_RCTL_EN | E1000_RCTL_BAM | E1000_RCTL_BSIZE | 0x00000008, e1000); // E1000_RCTL_SECRC
+    e1000regwrite(E1000_TDBAL, V2P(_e1000->tbd[0]), _e1000);
+    e1000regwrite(E1000_TDBAH, 0x00000000, _e1000);
+    e1000regwrite(E1000_TDLEN, (E1000_TBD_SLOTS * 16) << 7, _e1000);
+    e1000regwrite(E1000_TDH, 0x00000000, _e1000);
+    e1000regwrite(E1000_TCTL, E1000_TCTL_EN | E1000_TCTL_PSP | E1000_TCTL_CT_SET(0x0f) | E1000_TCTL_COLD_SET(0x200), _e1000);
+    e1000regwrite(E1000_TDT, 0, _e1000);
+    e1000regwrite(E1000_TIPG, E1000_TIPG_IPGT_SET(10) | E1000_TIPG_IPGR1_SET(10) | E1000_TIPG_IPGR2_SET(10), _e1000);
+    e1000regwrite(E1000_RDBAL, V2P(_e1000->rbd[0]), _e1000);
+    e1000regwrite(E1000_RDBAH, 0x00000000, _e1000);
+    e1000regwrite(E1000_RDLEN, (E1000_RBD_SLOTS * 16) << 7, _e1000);
+    e1000regwrite(E1000_RDH, 0x00000000, _e1000);
+    e1000regwrite(E1000_RDT, 0x00000000, _e1000);
+    e1000regwrite(E1000_IMS, E1000_IMS_RXSEQ | E1000_IMS_RXO | E1000_IMS_RXT0 | E1000_IMS_TXQE, _e1000);
+    e1000regwrite(E1000_RCTL, E1000_RCTL_EN | E1000_RCTL_BAM | E1000_RCTL_BSIZE | 0x00000008, _e1000); // E1000_RCTL_SECRC
     
-    cprintf("E1000: Interrupt enabled mask:0x%x\n", e1000regread(E1000_IMS, e1000));
+    cprintf("E1000: Interrupt enabled mask:0x%x\n", e1000regread(E1000_IMS, _e1000));
     // TODO: Interrupt Handler
-    picenable(e1000->irqline);
-    ioapicenable(e1000->irqline, 0);
-    ioapicenable(e1000->irqline, 1);
+    picenable(_e1000->irqline);
+    ioapicenable(_e1000->irqline, 0);
+    ioapicenable(_e1000->irqline, 1);
     
-    * drv = e1000;
+    * drv = _e1000;
     return 0;
 } 
 
