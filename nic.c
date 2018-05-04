@@ -1,9 +1,9 @@
 #include "nic.h"
 #include "defs.h"
 
-void regdevice(struct nic d) { nics[0] = d; }
+void regnicdevice(struct nic d) { nics[0] = d; }
 
-int getdevice(char * intrfc, struct nic ** d) {
+int getnicdevice(char * intrfc, struct nic ** d) {
     cprintf("Get device for interface=%s\n", intrfc);
     // TODO: Fetch device details from a table of loaded devices using interface name
     if (nics[0].sendpacket == 0 || nics[0].recvpacket == 0)

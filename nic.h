@@ -14,5 +14,5 @@ struct nic {
 
 struct nic nics[1];
 
-void regdevice(struct nic d);
-int getdevice(char * intrfc, struct nic ** d);
+void regnicdevice(struct nic d);
+int getnicdevice(char * intrfc, struct nic ** d);

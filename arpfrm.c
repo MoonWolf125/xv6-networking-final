@@ -3,6 +3,7 @@
  */
 #include "types.h"
 #include "defs.h"
+#include "util.h"
 #include "arpfrm.h"
 
 #define BROADCASTMAC "FF:FF:FF:FF:FF:FF"

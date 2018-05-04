@@ -3,6 +3,7 @@
  */
 #include "types.h"
 #include "defs.h"
+#include "arpfrm.h"
 #include "nic.h"
 
 static int blockuntilreply(struct eth_head * eth) {
@@ -19,7 +20,7 @@ int sendrequest(char * interface, char * ipadd, char * arpresp) {
     
     // Test if the NIC is found/connected/loaded
     struct nic * nic;
-    if (getdevice(interface, &nic) < 0) {
+    if (getnicdevice(interface, &nic) < 0) {
 	cprintf("ERROR: sendrequest : Device not loaded\n");
 	return -1;
     }

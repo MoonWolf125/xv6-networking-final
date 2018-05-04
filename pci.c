@@ -10,7 +10,7 @@ static const char * pcicls[] = {"Unclassified Device",
     "Display Controller", "Multimedia Device",
     "Memory Controller", "Bridge Device"};
 
-static void pciprntfunc(struct pcifunc * f) {
+static void pciprntfunc(pcifunc * f) {
     const char * class = pcicls[0];
     if (PCI_CLASS(f->devcls) < sizeof(pcicls) / sizeof(pcicls[0]))
 	class = pcicls[PCI_CLASS(f->devcls)];
@@ -23,22 +23,22 @@ static void pciprntfunc(struct pcifunc * f) {
 static uint32_t pciconfigformaddr(uint32_t busaddr, uint32_t devaddr,
 				  uint32_t funcaddr, uint32_t offset) {
     uint32_t val = 0x80000000 | busaddr << 16 | devaddr << 11 | funcaddr << 8 | offset;
-    retun val;
+    return val;
 }
 
-static uint32_t pciconfread(struct pcifunc * f, uint32_t offset) {
+static uint32_t pciconfread(pcifunc * f, uint32_t offset) {
     uint32_t val = pciconfigformaddr(f->bus->busnum, f->dev, f->func, offset);
-    outl(PCI_CONF_DATA_IOPORT);
+    outl(PCI_CONF_DATA_IOPORT, val);
     return inl(PCI_CONF_DATA_IOPORT);
 }
 
-static void pciconfwrite(struct pcifunc * f, uint32_t offset, uint32_t val) {
+static void pciconfwrite(pcifunc * f, uint32_t offset, uint32_t val) {
     uint32_t address = pciconfigformaddr(f->bus->busnum, f->dev, f->func, offset);
     outl(PCI_CONF_ADDR_IOPORT, address);
     outl(PCI_CONF_DATA_IOPORT, val);
 }
 
-void pcienabledev(struct pcifunc * f) {
+void pcienabledev(pcifunc * f) {
     pciconfwrite(f, PCI_COMMAND_STATUS_REG, PCI_COMMAND_IO_ENABLE |
 		 PCI_COMMAND_MEM_ENABLE | PCI_COMMAND_MASTER_ENABLE);
     cprintf("pcicmd reg:0x%x\n", pciconfread(f, PCI_COMMAND_STATUS_REG));
@@ -80,36 +80,37 @@ void pcienabledev(struct pcifunc * f) {
     }
 }
 
-static int attache1000(struct pcifunc * pcifunc) {
+static int attache1000(pcifunc * pcifunc) {
     pcienabledev(pcifunc);
     struct nic d;
-    inite1000(pcifunc, &d.driver, d.macaddr);
+    inite1000(pcifunc, &d.drvr, d.macaddr);
     d.sendpacket = sende1000;
     d.recvpacket = recve1000;
-    regdevice(d);
+    regnicdevice(d);
     return 0;
 }
 
-struct pcidrvr attachpcivendbase[] = {{0x8086, 0x100e, attache1000}, {0, 0, 0},};
+pcidrvr attachpcivendbase[] = {{0x8086, 0x100e, attache1000}, {0, 0, 0},};
 
-static void attachpcinic(struct pcifunc * pcifunc) {
+static void attachpcinic(pcifunc * pcifunc) {
+    uint i;
     uint32_t vendid = PCI_VENDOR(pcifunc->devid);
     uint32_t prodid = PCI_PRODUCT(pcifunc->devid);
-    struct pcidrvr * list = &attachpcivendbase[0];
+    pcidrvr * list = &attachpcivendbase[0];
     
-    for (uint i = 0; list[i].attachfn; i++) {
+    for (i = 0; list[i].atchfunc; i++) {
 	if (list[i].key0 == vendid && list[i].key1 == prodid) {
-	    int r = list[i].attachfn(pcifunc);
+	    int r = list[i].atchfunc(pcifunc);
 	    if (r < 0)
 		cprintf("PCI Attach Match: Attaching %x.%x (%p): %e\n",
-			vendid, prodid, list[i].attachfn, r);
+			vendid, prodid, list[i].atchfunc, r);
 	}
     }
 }
 
 static int pcienumbus(struct pcibus * bus) {
     int totdev = 0;
-    struct pcifunc func;
+    pcifunc func;
     memset(&func, 0, sizeof(func));
     func.bus = bus;
     
@@ -120,16 +121,16 @@ static int pcienumbus(struct pcibus * bus) {
 	    continue;
 	totdev++;
 	
-	struct pcifunc f = func;
+	pcifunc f = func;
 	for (f.func = 0; f.func < (PCI_HDRTYPE_MULTIFN(bhlc) ? 8 : 1); f.func++) {
-	    struct pcifunc pf = f;
+	    pcifunc pf = f;
 	    pf.devid = pciconfread(&f, PCI_ID_REG);
 	    if (PCI_VENDOR(pf.devid) == 0xffff)
 		continue;
 	    uint32_t intr = pciconfread(&pf, PCI_INTERRUPT_REG);
 	    pf.irqline = PCI_INTERRUPT_LINE(intr);
 	    pf.irqpin = PCI_INTERRUPT_PIN(intr);
-	    pf.devlcs = pciconfread(&pf, PCI_CLASS_REG);
+	    pf.devcls = pciconfread(&pf, PCI_CLASS_REG);
 	    pciprntfunc(&pf);
 	    
 	    if (PCI_CLASS(pf.devcls) == PCI_DEVICE_CLASS_NETWORK_CONTROLLER)

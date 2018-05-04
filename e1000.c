@@ -9,6 +9,8 @@
 #include "e1000.h"
 #include "defs.h"
 #include "x86.h"
+#include "arpfrm.h"
+#include "nic.h"
 #include "memlayout.h"
 
 /*
@@ -270,19 +272,20 @@ static void delay(unsigned int u) {
 }
 
 void sende1000(void * drv, uint8_t * pkt, uint16_t len) {
-    e1000 * e1000 = (e1000 *)drv;
-    cprintf("E1000 driver: Sending packet of length: 0x%x %x starting at physical address: 0x%x\n", len, sizeof(struct eth_head), V2P(e1000->tbuf[e1000->tbdtail]));
-    memset(e1000->tbd[e1000->tbdtail], 0, sizeof(e1000_TBD));
-    memmove((e1000->tbuf[e1000->tbdtail]), pkt, len);
-    e1000->tbd[e1000->tbdtail]->addr = (uint64_t)(uint32_t)V2P(e1000->tbuf[e1000->tbdtail]);
-    e1000->tbd[e1000->tbdtail]->len = len;
-    e1000->tbd[e1000->tbdtail]->cmd = (E1000_TDESC_CMD_RS | E1000_TDESC_CMD_EOP | E1000_TDESC_CMD_IFCS);
-    e1000->tbd[e1000->tbdtail]->cso = 0;
-    int oldtail = e1000->tbdtail;
-    e1000->tbdtail = (e1000->tbdtail + 1) % E1000_TBD_SLOTS;
-    e1000regwrite(E1000_TDT, e1000->tbdtail, e1000);
+    e1000 * _e1000 = (e1000 *)kalloc();
+    _e1000 = drv;
+    cprintf("E1000 driver: Sending packet of length: 0x%x %x starting at physical address: 0x%x\n", len, sizeof(struct eth_head), V2P(_e1000->tbuf[_e1000->tbdtail]));
+    memset(_e1000->tbd[_e1000->tbdtail], 0, sizeof(e1000_TBD));
+    memmove((_e1000->tbuf[_e1000->tbdtail]), pkt, len);
+    _e1000->tbd[_e1000->tbdtail]->addr = (uint64_t)(uint32_t)V2P(_e1000->tbuf[_e1000->tbdtail]);
+    _e1000->tbd[_e1000->tbdtail]->len = len;
+    _e1000->tbd[_e1000->tbdtail]->cmd = (E1000_TDESC_CMD_RS | E1000_TDESC_CMD_EOP | E1000_TDESC_CMD_IFCS);
+    _e1000->tbd[_e1000->tbdtail]->cso = 0;
+    int oldtail = _e1000->tbdtail;
+    _e1000->tbdtail = (_e1000->tbdtail + 1) % E1000_TBD_SLOTS;
+    e1000regwrite(E1000_TDT, _e1000->tbdtail, _e1000);
     
-    while (!E1000_TDESC_STATUS_DONE(e1000->tbd[oldtail]->sts)) {
+    while (!E1000_TDESC_STATUS_DONE(_e1000->tbd[oldtail]->sts)) {
 	delay(2);
     }
     cprintf("after while loop\n");

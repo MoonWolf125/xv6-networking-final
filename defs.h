@@ -170,7 +170,7 @@ void            uartinit(void);
 void            uartintr(void);
 void            uartputc(int);
 
-// ulib.c
+// util.c
 int             strcmp(const char *p, const char *q);
 int             atoi(const char *s);
 
@@ -191,7 +191,7 @@ int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 
 // arp.c
-int             sendarpreq(char * intrfc, char * ipaddr, char * arpresp);
+int             sendrequest(char * intrfc, char * ipaddr, char * arpresp);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

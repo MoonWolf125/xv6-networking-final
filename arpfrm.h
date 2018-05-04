@@ -20,20 +20,8 @@ struct eth_head {
 // Initialize the ARP frame
 int initframe(uint8_t * smac, char * ipadd, struct eth_head * eth);
 
-// Parse ARP reply
-void parsereply(struct eth_head eth);
-
 // Convert MAC Address
 void unpackmac(uint8_t * mac, char * macstr);
-void packmac(uchar* mac, char * macstr);
-
-// Get IP and parse IP
-uint32_t getip(char * ip, uint len);
-void parseip(uint ip, char * ipstr);
 
 // Conversions for int to hex and hex to int
 char inttohex(uint n);
-int hextoint(char c);
-
-uint16_t hton(uint16_t v);
-uint32_t htons(uint32_t v);
