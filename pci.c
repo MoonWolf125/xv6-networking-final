@@ -16,8 +16,8 @@ static void pciprntfunc(pcifunc * f) {
 	class = pcicls[PCI_CLASS(f->devcls)];
     
     cprintf("PCI: %x:%x.%d: %x:%x: class: %x.%x (%s) irq: %d\n",
-	    f->bus->busnum, f->dev, f->func,
-	    PCI_VENDOR(f->devcls), PCI_SUBCLASS(f->devcls), class, f->irqline);
+	    f->bus->busnum, f->dev, f->func,PCI_VENDOR(f->devid), PCI_PRODUCT(f->devid),
+	    PCI_CLASS(f->devcls), PCI_SUBCLASS(f->devcls), class, f->irqline);
 }
 
 static uint32_t pciconfigformaddr(uint32_t busaddr, uint32_t devaddr,
@@ -28,7 +28,7 @@ static uint32_t pciconfigformaddr(uint32_t busaddr, uint32_t devaddr,
 
 static uint32_t pciconfread(pcifunc * f, uint32_t offset) {
     uint32_t val = pciconfigformaddr(f->bus->busnum, f->dev, f->func, offset);
-    outl(PCI_CONF_DATA_IOPORT, val);
+    outl(PCI_CONF_ADDR_IOPORT, val);
     return inl(PCI_CONF_DATA_IOPORT);
 }
 

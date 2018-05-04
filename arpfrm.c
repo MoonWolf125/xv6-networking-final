@@ -13,7 +13,7 @@ uint16_t hton(uint16_t v) {
 }
 
 uint32_t htons(uint32_t v) {
-    return hton(v >> 16) | (hton((uint16_t) v << 16));
+    return hton(v >> 16) | (hton((uint16_t) v) << 16);
 }
 
 char inttohex(uint n) {
@@ -42,7 +42,7 @@ int hextoint(char c) {
 
 uint32_t getip(char * ip, uint len) {
     char arr[4];
-    uint ipvals[4];
+    uint ipv4 = 0, ipvals[4];
     int i = 0, j = 0, k = 0;
     
     for (i = 0; i < len; i++) {
@@ -52,7 +52,7 @@ uint32_t getip(char * ip, uint len) {
 	    arr[j++] = '\0';
 	    j = 0;
 	    ipvals[k++] = atoi(arr);
-	    cprintf("Check ipval:%d , arr:%s", ipvals[k], arr);
+	    // cprintf("Check ipval:%d , arr:%s", ipvals[k], arr);
 	}
 	else
 	    arr[j++] = c;
@@ -61,9 +61,10 @@ uint32_t getip(char * ip, uint len) {
     arr[j++] = '\0';
     j = 0;
     ipvals[k++] = atoi(arr);
-    cprintf("Final check ipval:%d , arr:%s", ipvals[k], arr);
+    // cprintf("Final check ipval:%d , arr:%s", ipvals[k], arr);
     
-    return (ipvals[3]<<24) + (ipvals[2]<<16) + (ipvals[1]<<8) + ipvals[0];
+    ipv4 = (ipvals[3]<<24) + (ipvals[2]<<16) + (ipvals[1]<<8) + ipvals[0];
+    return ipv4;
 }
 
 // Parse the ipstr pointer from the uint parameter
@@ -78,9 +79,9 @@ void parseip(uint ip, char * ipstr) {
     
     int j = 0;
     for (i = 0; i < 4; i++) {
-	uint ip = ipvals[i];
+	uint ipx = ipvals[i];
 	
-	if (ip == 0) {
+	if (ipx == 0) {
 	    ipstr[j++] = '0';
 	    ipstr[j++] = ':';
 	}
@@ -88,9 +89,9 @@ void parseip(uint ip, char * ipstr) {
 	    char arr[3];
 	    int k = 0;
 	    
-	    while (ip > 0) {
-		arr[k++] = (ip % 10) + '0';
-		ip /= 10;
+	    while (ipx > 0) {
+		arr[k++] = (ipx % 10) + '0';
+		ipx /= 10;
 	    }
 	    
 	    for (k = k - 1; j >= 0; j--)
@@ -132,7 +133,6 @@ void packmac(uchar * mac, char * macstr) {
 }
 
 int initframe(uint8_t * smac, char * ipadd, eth_head * eth) {
-    cprintf("Create ARP frame\n");
     char * dmac = BROADCASTMAC;
     
     packmac(eth->dmac, dmac);
