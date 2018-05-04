@@ -1,7 +1,7 @@
 #include "pci.h"
 #include "x86.h"
 #include "defs.h"
-#include "pciregstrs.h"
+#include "pciregs.h"
 #include "e1000.h"
 #include "nic.h"
 

@@ -178,7 +178,7 @@
 
 /*
  * Transmit Buffer Descriptor
- * 	Queue must be aligned on 16b boundary
+ * 	Queue must be aligned on 16B boundary
  */
 __attribute__ ((packed))
 struct e1000_TBD {
@@ -193,7 +193,7 @@ struct e1000_TBD {
 
 /*
  * Receive Buffer Descriptor
- * 	Queue must be aligned on 16b boundary
+ * 	Queue must be aligned on 16B boundary
  */
 __attribute__ ((packed))
 struct e1000_RBD {
